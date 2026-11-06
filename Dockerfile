@@ -8,7 +8,7 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Basic Auth credentials (git-ignored — generated locally, see RUNBOOK.md)
-COPY .htpasswd /etc/nginx/.htpasswd
+# COPY .htpasswd /etc/nginx/.htpasswd
 
 # Copy frontend files (multi-page)
 COPY *.html /usr/share/nginx/html/
