@@ -1,0 +1,13 @@
+{
+  "inner_html_occurrences": {
+    "assets/js/app.js": 32,
+    "assets/js/sidebar.js": 1,
+    "assets/js/collection.js": 3,
+    "assets/js/upload-widget.js": 2
+  },
+  "forbidden_patterns": [
+    "eval(",
+    "document.write(",
+    "new Function("
+  ]
+}

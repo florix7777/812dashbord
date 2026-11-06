@@ -1,0 +1,31 @@
+{
+  "version": "1.2.3",
+  "timestamp": "2026-04-20T19:05:47.045290",
+  "type": "production-snapshot",
+  "files": {
+    "frontend": "index.html",
+    "updater": "auto_updater.py",
+    "docker_compose": "docker-compose.yml",
+    "dockerfile": "Dockerfile",
+    "config": "docker-config.json"
+  },
+  "documentation": {
+    "release_notes": "RELEASE_NOTES.md",
+    "version_history": "VERSION_HISTORY.md",
+    "project_status": "PROJECT_STATUS.md",
+    "general_plan": "GENERAL_PLAN.md"
+  },
+  "git": {
+    "branch": "main",
+    "tag": "v1.2.3"
+  },
+  "status": "PRODUCTION_READY",
+  "changes": [
+    "Fixed TQS display (0.6% -> 63.3%)",
+    "Fixed Progress Wave graphs",
+    "Fixed TQS by operators chart",
+    "Fixed Priority 0 calculation",
+    "Fixed Growth zones formatting",
+    "Added Docker configuration"
+  ]
+}

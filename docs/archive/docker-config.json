@@ -1,0 +1,20 @@
+{
+  "version": "1.2.3",
+  "release_date": "2026-04-20T19:04:45.963469",
+  "commit": "",
+  "docker_tags": [
+    "dashboard-sc:v1.2.3",
+    "dashboard-sc:latest",
+    "dashboard-sc:20260420",
+    "dashboard-sc:latest"
+  ],
+  "status": "production-ready",
+  "changes": [
+    "TQS display: 0.6% -> 63.3%",
+    "Progress Wave: all 23 lines",
+    "TQS by operators: correct scale",
+    "Priority 0: operator count",
+    "Growth zones: format fix",
+    "Data aggregation: 0-1 to 0-100%"
+  ]
+}

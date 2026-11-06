@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - Взыскание</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="assets/vendor/xlsx.mini.min.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(255, 93, 22, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 93, 22, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #FF5D16, #D4470A); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(212, 71, 10, 0.4);">NEW</span>
+        Взыскание — ежедневная динамика
+      </div>
+    </div>
+
+    <div class="section active" style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF5D16" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Взыскание</div>
+          <div class="page-sub" style="margin-bottom:0" id="pageSub">Загрузка данных…</div>
+        </div>
+        <button id="exportCollectionBtn" class="export-xlsx-btn" onclick="exportCollectionToExcel()" style="display:none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Экспорт в Excel
+        </button>
+      </div>
+      <div style="margin-bottom:24px"></div>
+
+      <div style="background:rgba(19, 25, 32,0.4);padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);margin-bottom:24px;display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;color:#3FA7C9;">МЕСЯЦ:</span>
+        <select id="monthSelect" style="background:#0f172a;color:white;border:1px solid #2E3944;padding:6px 12px;border-radius:6px;font-size:12px;outline:none;cursor:pointer;min-width:160px;"></select>
+      </div>
+
+      <div id="noDataBlock" class="card" style="display:none;padding:24px;text-align:center;color:#64748b;">
+        Пока нет ни одного загруженного отчёта по взысканию.<br>
+        Загрузите XLSX-файл с колонками «Оператор», «Сбор», «План» — система распознает его автоматически.
+      </div>
+
+      <div id="collectionContent" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px;" id="statCards"></div>
+
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-title">Динамика сбора по отделу (нарастающим итогом)</div>
+          <div style="position:relative;height:260px;width:100%;"><canvas id="deptTrendChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Рейтинг операторов по взысканию</div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:40px;">#</th>
+                  <th>ОПЕРАТОР</th>
+                  <th style="min-width:120px;">Собрано (месяц)</th>
+                  <th style="min-width:90px;">% плана</th>
+                  <th style="min-width:90px;">Тренд (к вчера)</th>
+                  <th style="min-width:110px;">К пред. месяцу</th>
+                </tr>
+              </thead>
+              <tbody id="collectionBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/xlsx-export.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script src="assets/js/collection.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('collection');
+      initTheme();
+      initCollectionPage();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - CRM Rules</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(96, 165, 250, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(96, 165, 250, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.4);">DOCv1.1</span>
+        Нормативная база: Правила CRM
+      </div>
+    </div>
+    
+    <div class="section active" style="padding:28px; max-width: 1000px; margin: 0 auto;">
+      <div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg> Правила работы с системой CRM</div>
+      <div class="page-sub" style="margin-bottom: 30px;">При взыскании задолженности на ранней стадии (Soft Collection)</div>
+
+      <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+        <!-- Card 1 -->
+        <div class="card" style="border-left: 4px solid #60a5fa;">
+          <h3 style="color: #60a5fa; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+            1. Общие положения
+          </h3>
+          <ul style="font-size: 12px; color: #cbd5e1; padding-left: 20px; line-height: 1.6;">
+            <li style="margin-bottom: 8px;">Настоящие Правила устанавливают порядок работы с CRM при взыскании просроченной задолженности на ранней стадии.</li>
+            <li style="margin-bottom: 8px;">Сотрудники обязаны обеспечивать корректную фиксацию итогов переговоров. Фиксация включает <strong>три обязательных элемента</strong>: древо действий, рабочая задача, комментарий.</li>
+            <li>Корректная фиксация обеспечивает оперативные решения Системы по холдированию и распределению контрактов.</li>
+          </ul>
+        </div>
+        
+        <!-- Card 2 -->
+        <div class="card" style="border-left: 4px solid #FF5D16;">
+          <h3 style="color: #FF5D16; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            2. Требования к фиксации
+          </h3>
+          <ul style="font-size: 12px; color: #cbd5e1; padding-left: 20px; line-height: 1.6;">
+            <li style="margin-bottom: 8px;">Фиксация проводится немедленно по итогам переговоров и влияет на: 
+              <br/><span style="color:#fcd34d;">• холдирование</span> (временное удержание от обзвона)
+              <br/><span style="color:#fcd34d;">• распределение</span> (передача на обзвон или миграцию в Skip Tracing/Compliance/Pre-collection)
+            </li>
+            <li>При некорректной фиксации Система дезориентируется (нецелесообразное холдирование, иррациональное распределение, снижение эффективности).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card" style="margin-bottom: 24px; border-left: 4px solid #ef4444;">
+        <h3 style="color: #ef4444; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          3. Примеры дезориентации Системы
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 16px; border-radius: 8px;">
+            <div style="font-size: 13px; font-weight: bold; color: #e2e8f0; margin-bottom: 8px;">Необоснованные PTP-сделки</div>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.5;">Система удерживает контракт 3 календарных дня. При отсутствии реальной готовности к оплате контракт не выводится на обзвон timely, снижая плотность давления и эффективность взыскания.</p>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 16px; border-radius: 8px;">
+            <div style="font-size: 13px; font-weight: bold; color: #e2e8f0; margin-bottom: 8px;">Неточная фиксация итогов</div>
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.5;">Влияет на определение статуса, задерживает/необоснованно передает контракты в инструменты Skip Tracing, Compliance, нарушая своевременную реакцию.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="card" style="border-left: 4px solid #10b981;">
+        <h3 style="color: #10b981; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          4. Заключительные положения
+        </h3>
+        <ul style="font-size: 12px; color: #cbd5e1; padding-left: 20px; line-height: 1.6;">
+          <li style="margin-bottom: 8px;">Системный подход исключает произвольную фиксацию, не соответствующую реальным результатам.</li>
+          <li style="margin-bottom: 8px;">Нарушение Правил влечет ответственность в соответствии с внутренними регламентами Отдела.</li>
+          <li>Правила обязательны для всех операторов Отдела и подлежат пересмотру/дополнениям в соответствии со стратегическим планированием.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('svp_crm');
+      initTheme();
+    });
+  </script>
+</body>
+</html>

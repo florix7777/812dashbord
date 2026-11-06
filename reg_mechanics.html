@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - Механика Оценки</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  
+  <style>
+    .mech-box { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #14b8a6; }
+    body.light-mode .mech-box { background: #F7F7F4; border: 1px solid rgba(20, 184, 166, 0.2); border-left-color: #0d9488; }
+    
+    .mech-box h3 { color: #14b8a6; font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    body.light-mode .mech-box h3 { color: #0d9488; }
+    
+    .mech-box p { font-size: 13px; color: #cbd5e1; line-height: 1.6; }
+    body.light-mode .mech-box p { color: #3f3f46; }
+    
+    .mech-box.blue-box { border-left-color: #3b82f6; }
+    body.light-mode .mech-box.blue-box { border-left-color: #2563eb; border-color: rgba(59, 130, 246, 0.2); }
+    .mech-box.blue-box h3 { color: #3b82f6; }
+    body.light-mode .mech-box.blue-box h3 { color: #2563eb; }
+    
+    .mech-box.orange-box { border-left-color: #f59e0b; }
+    body.light-mode .mech-box.orange-box { border-left-color: #d97706; border-color: rgba(245, 158, 11, 0.2); }
+    .mech-box.orange-box h3 { color: #f59e0b; }
+    body.light-mode .mech-box.orange-box h3 { color: #d97706; }
+
+    .tqs-btn {
+      display: inline-block; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none; transition: 0.2s;
+      background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    body.light-mode .tqs-btn {
+      background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    .tqs-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+    }
+    body.light-mode .tqs-btn:hover {
+      background: rgba(59, 130, 246, 0.15);
+    }
+  </style>
+
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(20, 184, 166, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(20, 184, 166, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(20, 184, 166, 0.4);">DOCv2.0</span>
+        Нормативная база: Механика Оценки
+      </div>
+    </div>
+    
+    <div class="section active" style="padding:28px; max-width: 900px; margin: 0 auto;">
+      <div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14b8a6"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+        </svg> Механика оценки качества переговоров (SC Unit)</div>
+      <div class="page-sub" style="margin-bottom: 30px;">Структуризация критериев звонков 2026 года</div>
+
+      <div class="mech-box">
+        <h3>1. Общие положения</h3>
+        <p>Настоящий документ устанавливает единые стандарты и систему балльной оценки эффективности работы сотрудников при осуществлении исходящих и входящих звонков. Общая оценка формируется из суммы 9 блоков критериев, суммарный вес которых составляет 100%.</p>
+      </div>
+
+      <div class="mech-box blue-box">
+        <h3>2. Интеграция с Методологией 9 Критериев (TQS)</h3>
+        <p style="margin-bottom:12px;">Методика полностью соотносится с действующей формой отчетности мониторинга звонков и включает 9 обязательных блоков: Приветствие, Этика, CRM, Легендирование, Информирование, Аргументация, Манипуляция, Требования, Подведение итогов.</p>
+        <a href="reg_methodology.html" class="tqs-btn">Открыть Интерактивную Карту TQS →</a>
+      </div>
+
+      <div class="mech-box orange-box">
+        <h3>3. Итоговая Оценка (Total Quality Score)</h3>
+        <p>Итоговый процент эффективности рассчитывается как средневзвешенная сумма баллов по всем блокам TQS. Данные заносятся в еженедельный (промежуточный) и ежемесячный (итоговый) отчеты мониторинга для последующего анализа динамики сотрудников.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('reg_mechanics');
+      initTheme();
+    });
+  </script>
+</body>
+</html>

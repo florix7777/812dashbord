@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: qc_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-qc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-qc_dashboard}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # NOTE: intentionally no "ports:" mapping. Postgres must only be reachable
+    # from other containers on qc_network (backend, updater) — never from the
+    # host network / internet directly. Use `docker compose exec postgres psql ...`
+    # for manual access, or a temporary SSH tunnel if you need a local GUI client.
+    networks:
+      - qc_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qc_user} -d ${POSTGRES_DB:-qc_dashboard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ${BACKEND_CONTEXT:-./backend}
+      dockerfile: Dockerfile
+    container_name: qc_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://qc_user:change_me@postgres:5432/qc_dashboard}
+      REPORTS_DIR: /app/reports
+      DATA_MODE: ${DATA_MODE:-api}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-20971520}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    volumes:
+      - type: bind
+        source: ${BACKEND_SOURCE:-./backend}
+        target: /app
+      - type: bind
+        source: ${REPORTS_SOURCE:-./reports}
+        target: /app/reports
+    # NOTE: intentionally no "ports:" mapping. Only nginx should reach the
+    # backend, via the internal qc_network (see nginx.conf `proxy_pass`).
+    # Exposing 8000 directly to the host/internet would let anyone bypass
+    # nginx's Basic Auth and hit the API raw.
+    networks:
+      - qc_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qc_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - qc_network
+
+  updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.updater
+    container_name: qc_updater
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://qc_user:change_me@postgres:5432/qc_dashboard}
+      BACKEND_API_URL: http://backend:8000
+      DATA_MODE: ${DATA_MODE:-api}
+      ENABLE_BACKEND_SYNC: ${ENABLE_BACKEND_SYNC:-1}
+    volumes:
+      - type: bind
+        source: ${REPORTS_SOURCE:-./reports}
+        target: /app/reports
+      - type: bind
+        source: ./assets/js
+        target: /app/assets/js
+    networks:
+      - qc_network
+
+volumes:
+  postgres_data:
+
+networks:
+  qc_network:
+    driver: bridge

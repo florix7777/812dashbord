@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - СВП Механизм</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .step-container { border-left: 2px solid rgba(255, 93, 22, 0.3); padding-left: 24px; position: relative; margin-bottom: 30px; }
+    .step-dot { position: absolute; left: -9px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: #0f172a; border: 2px solid #FF5D16; }
+    .step-content h3 { color: #FF5D16; font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .step-content ul { font-size: 13px; color: #cbd5e1; list-style: none; padding: 0; line-height: 1.6; }
+    .step-content ul li { position: relative; padding-left: 14px; margin-bottom: 6px; }
+    .step-content ul li::before { content: "•"; position: absolute; left: 0; color: #a0aec0; }
+    .quote-box { background: rgba(30, 41, 59, 0.6); border-left: 3px solid #8b5cf6; padding: 12px 16px; margin-top: 12px; border-radius: 4px; font-size: 12.5px; color: #e2e8f0; font-style: italic; }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(255, 93, 22, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 93, 22, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #FF5D16, #D4470A); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(212, 71, 10, 0.4);">DOCv2.0</span>
+        Архитектура структуры ведения переговоров (СВП)
+      </div>
+    </div>
+    
+    <div class="section active" style="padding:28px; max-width: 900px; margin: 0 auto;">
+      <div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5D16"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg> Порядок механизма СВП</div>
+      <div class="page-sub" style="margin-bottom: 30px;">Интерактивная карта компетенции специалиста SC</div>
+
+      <div class="card" style="padding-top: 30px; padding-bottom: 10px;">
+        <!-- Step 1 -->
+        <div class="step-container">
+          <div class="step-dot"></div>
+          <div class="step-content">
+            <h3>Этап 1. Формализация фазы входа в контакт</h3>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Приветствие, Идентификация, Легендирование</div>
+            <ul>
+              <li>Установление стандартов приветствия согласно корпоративному регламенту.</li>
+              <li>Разделение протоколов идентификации: исходящий (устное подтверждение) и входящий (4-факторная верификация).</li>
+              <li>Тактические роли легендирования: «компетенция» (роль) и «эскалация» (техническая часть).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-container">
+          <div class="step-dot" style="border-color:#3b82f6;"></div>
+          <div class="step-content">
+            <h3 style="color:#3b82f6;">Этап 2. Информационный блок и первичная диагностика</h3>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Информирование о долге, DPD, Открытые вопросы</div>
+            <ul>
+              <li>Регламентация озвучивания суммы долга и срока просрочки.</li>
+              <li>Формализация работы с первичными возражениями клиента.</li>
+              <li>Разработка перечня «открытых вопросов» для выявления истинных причин.</li>
+            </ul>
+            <div class="quote-box">
+              <span style="color:#3FA7C9; font-weight:bold; font-style:normal;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Примеры вопросов:</span><br/>
+              "Опишите ситуацию, которая помешала вам произвести оплату?"<br/>
+              "Как вы планируете распределить бюджет, чтобы закрыть вопрос?"<br/>
+              "Что должно произойти, чтобы вы внесли часть суммы до конца дня?"
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-container">
+          <div class="step-dot" style="border-color:#ef4444;"></div>
+          <div class="step-content">
+            <h3 style="color:#ef4444;">Этап 3. Блок активного взыскания (РсВ)</h3>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Аргументация и Манипуляция</div>
+            <ul>
+              <li>Переход от логических доводов к нормативной аргументации (НПА и Оферта).</li>
+              <li>Внедрение техник манипуляции: от формальных к развернутой проработке последствий.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-container">
+          <div class="step-dot" style="border-color:#10b981;"></div>
+          <div class="step-content">
+            <h3 style="color:#10b981;">Этап 4. Фаза фиксации обязательств и завершения</h3>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Требования, Итоги, Прощание</div>
+            <ul>
+              <li>Фиксация конкретного срока оплаты (PTP), суммы и способов оплаты.</li>
+              <li>Обязательное резюмирование и предупреждение о документировании.</li>
+              <li>Протокол корректного прощания.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-container" style="border-left-color:transparent;">
+          <div class="step-dot" style="border-color:#a855f7;"></div>
+          <div class="step-content">
+            <h3 style="color:#a855f7;">Этап 5. Интеграция СВП в систему контроля (QC)</h3>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Оценка процессов</div>
+            <ul>
+              <li>Увязка каждого этапа СВП с весовыми коэффициентами (5–20%).</li>
+              <li>Установление персональной ответственности сотрудника за отклонения от СВП.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('svp_mechanism');
+      initTheme();
+    });
+  </script>
+</body>
+</html>
