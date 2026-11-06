@@ -74,11 +74,6 @@ services:
       dockerfile: Dockerfile.updater
     container_name: qc_updater
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://qc_user:change_me@postgres:5432/qc_dashboard}
       BACKEND_API_URL: http://backend:8000
