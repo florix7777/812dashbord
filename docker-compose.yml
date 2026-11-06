@@ -49,11 +49,11 @@ services:
     # nginx's Basic Auth and hit the API raw.
     networks:
       - qc_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+   # healthcheck:
+    #  test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+     # interval: 10s
+      # timeout: 5s
+     # retries: 3
 
   nginx:
     build:
