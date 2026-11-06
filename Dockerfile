@@ -5,8 +5,7 @@
 FROM nginx:alpine
 
 # Copy nginx server-block configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Basic Auth credentials (git-ignored — generated locally, see RUNBOOK.md)
 # COPY .htpasswd /etc/nginx/.htpasswd
 
