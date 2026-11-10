@@ -42,6 +42,14 @@ function initSidebar(activeId) {
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
         \u0412\u0437\u044b\u0441\u043a\u0430\u043d\u0438\u0435
       </a>
+      <a href="daily.html" class="nav-item ${activeId === 'daily' ? 'active' : ''}">
+        <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
+        Контроль по дням
+      </a>
+      <a href="staff.html" class="nav-item ${activeId === 'staff' ? 'active' : ''}">
+        <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+        Сотрудники
+      </a>
       <a href="forecast.html" class="nav-item ${activeId === 'forecast' ? 'active' : ''}">
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
         \u041f\u0440\u043e\u0433\u043d\u043e\u0437\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435
@@ -99,13 +107,14 @@ function initSidebar(activeId) {
       <div style="display:flex;align-items:center;gap:10px;">
         <img src="logo/New logo1.1.jpg" alt="Логотип организации" class="sidebar-org-logo">
         <div class="bottom-text">
-          <div style="font-size:10px;color:#94a3b8;font-weight:600;">\u0424\u0435\u0432\u0440\u0430\u043b\u044c\u2013\u0410\u043f\u0440\u0435\u043b\u044c 2026</div>
+          <div id="sidebarStatus" style="font-size:10px;color:#94a3b8;font-weight:600;">данные: проверяю…</div>
           <div style="font-size:9px;color:#4a5568;margin-top:1px;">Soft Collection Unit</div>
         </div>
       </div>
     </div>
   `;
   document.getElementById('sidebar').innerHTML = sidebarHtml;
+  loadSidebarStatus(activeId);
 
   // Intercept nav-item clicks: stamp current theme + sidebar state onto the URL
   // so the next page loads in exactly the right visual state from first paint.
@@ -150,4 +159,23 @@ function toggleSidebar() {
     url.searchParams.set('sidebar', state);
     window.history.replaceState({}, '', url);
   } catch (err) {}
+}
+
+
+// Подпись внизу меню: до какой даты загружены оценки и взыскание.
+async function loadSidebarStatus(activeId) {
+  const el = document.getElementById('sidebarStatus');
+  if (!el) return;
+  if (['law', 'instruments', 'manual'].indexOf(activeId) !== -1) { el.textContent = 'Soft Collection'; return; }
+  const fmt = iso => (iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) : 'нет');
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const st = await res.json();
+    el.textContent = 'Оценки до ' + fmt(st.qc && st.qc.last_call_date) + ' · Взыскание до ' + fmt(st.collection && st.collection.last_report_date);
+    el.title = 'Последняя дата в загруженных отчётах';
+  } catch (e) {
+    el.textContent = 'нет связи с сервером';
+    el.style.color = '#ef4444';
+  }
 }

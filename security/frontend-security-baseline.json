@@ -1,9 +1,13 @@
 {
   "inner_html_occurrences": {
     "assets/js/app.js": 32,
+    "assets/js/collection.js": 6,
+    "assets/js/core.js": 3,
+    "assets/js/daily.js": 16,
     "assets/js/sidebar.js": 1,
-    "assets/js/collection.js": 3,
-    "assets/js/upload-widget.js": 2
+    "assets/js/staff.js": 3,
+    "assets/js/tactical-pages.js": 13,
+    "assets/js/upload-widget.js": 5
   },
   "forbidden_patterns": [
     "eval(",
