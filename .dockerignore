@@ -1,0 +1,46 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.qwen/
+*.code-workspace
+
+# Docs
+*.md
+!README.md
+
+# Backup
+*.backup
+*.orig
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Other
+*.log
+*.tmp
+debug_service_state.json
+
+# Не нужно образу nginx
+backend/
+tests/
+scripts/
+security/
+initial_data/
+reports/

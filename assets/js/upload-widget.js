@@ -18,7 +18,7 @@
 // the two formats that actually work end-to-end today.
 // ============================================================
 
-const UPLOAD_ENDPOINTS = { xlsx: '/api/upload/xlsx', pdf: '/api/upload/pdf' };
+const UPLOAD_ENDPOINTS = { xlsx: '/api/upload', pdf: '/api/upload' };
 const UPLOAD_MAX_BYTES = 20 * 1024 * 1024; // matches backend MAX_UPLOAD_BYTES default
 
 // Self-contained escaping — this widget loads on every page, including
@@ -38,9 +38,25 @@ function injectUploadModal() {
         <div class="upload-modal-header">
           <div>
             <div class="upload-modal-title">Загрузить отчёт</div>
-            <div class="upload-modal-sub">QC-оценки, взыскание или CRM-действия — формат определяется автоматически</div>
+            <div class="upload-modal-sub">Оценки звонков, взыскание или CRM-действия: тип файла определяется автоматически</div>
           </div>
           <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+
+        <div style="margin-bottom:12px;font-size:12px;line-height:1.5;">
+          <label for="uploadReportDate" style="font-weight:600;">Дата отчёта</label>
+          <input type="date" id="uploadReportDate" class="search-box" style="width:auto;margin:0 8px;padding:5px 10px;font-size:12px;">
+          <span style="opacity:.7;">нужна только если в файле нет колонки «Дата» (например, итог за месяц). Иначе оставьте пустой.</span>
+          <div style="margin-top:8px;">
+            <label for="uploadAmountType" style="font-weight:600;">Суммы взыскания в файле</label>
+            <select id="uploadAmountType" class="search-box" style="width:auto;margin:0 8px;padding:5px 10px;font-size:12px;">
+              <option value="auto">определить автоматически</option>
+              <option value="cumulative">накопленные с начала месяца</option>
+              <option value="daily">за один день</option>
+            </select>
+            <span style="opacity:.7;">нужно только для отчётов по взысканию</span>
+          </div>
+          <div style="margin-top:6px;"><a href="assets/templates/collection_template.xlsx" download style="color:#FF5D16;font-weight:600;">Скачать шаблон для взыскания</a></div>
         </div>
 
         <div id="uploadDropzone" class="upload-dropzone">
@@ -53,7 +69,7 @@ function injectUploadModal() {
         <div id="uploadQueue" class="upload-queue"></div>
 
         <div class="upload-modal-footer">
-          <span style="opacity:.6;">Файл обработается автоматически в течение нескольких секунд</span>
+          <span style="opacity:.6;">Файл разбирается сразу, результат появится ниже</span>
         </div>
       </div>
     </div>
@@ -95,38 +111,53 @@ async function uploadOneFile(file) {
   const ext = extOf(file.name);
   const queue = document.getElementById('uploadQueue');
   const rowId = 'upload-row-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-  const row = document.createElement('div');
-  row.className = 'upload-row';
-  row.id = rowId;
-  row.innerHTML = `<span class="upload-row-name">${uploadEscapeHtml(file.name)}</span><span class="upload-row-status">…</span>`;
-  queue.prepend(row);
-
-  const statusEl = () => document.querySelector('#' + rowId + ' .upload-row-status');
-
-  if (!UPLOAD_ENDPOINTS[ext]) {
+  const wrap = document.createElement('div');
+  wrap.id = rowId;
+  wrap.innerHTML = `<div class="upload-row"><span class="upload-row-name">${uploadEscapeHtml(file.name)}</span><span class="upload-row-status">…</span></div><div class="upload-details" style="font-size:12px;line-height:1.5;padding:4px 10px 8px;"></div>`;
+  queue.prepend(wrap);
+  const row = wrap.querySelector('.upload-row');
+  const statusEl = () => wrap.querySelector('.upload-row-status');
+  const details = wrap.querySelector('.upload-details');
+  const fail = (short, long, problems) => {
     row.classList.add('upload-row-error');
-    statusEl().textContent = 'формат не поддерживается (.xlsx/.pdf)';
-    return;
-  }
-  if (file.size > UPLOAD_MAX_BYTES) {
-    row.classList.add('upload-row-error');
-    statusEl().textContent = 'больше 20 МБ';
-    return;
-  }
+    statusEl().textContent = short;
+    details.innerHTML = `<div style="color:#ef4444;">${uploadEscapeHtml(long || short)}</div>` +
+      (problems && problems.length ? '<ul style="margin:4px 0 0 16px;opacity:.8;">' + problems.map(p => `<li>${uploadEscapeHtml(p)}</li>`).join('') + '</ul>' : '');
+  };
+
+  if (!UPLOAD_ENDPOINTS[ext]) { fail('формат не поддерживается', 'Поддерживаются только файлы .xlsx и .pdf.'); return; }
+  if (file.size > UPLOAD_MAX_BYTES) { fail('больше 20 МБ', 'Файл больше 20 МБ.'); return; }
 
   const formData = new FormData();
   formData.append('file', file);
+  const dateEl = document.getElementById('uploadReportDate');
+  if (dateEl && dateEl.value) formData.append('report_date', dateEl.value);
+  const typeEl = document.getElementById('uploadAmountType');
+  if (typeEl && typeEl.value) formData.append('amount_type', typeEl.value);
 
   try {
-    statusEl().textContent = 'загрузка…';
-    const res = await fetch(UPLOAD_ENDPOINTS[ext], { method: 'POST', body: formData });
+    statusEl().textContent = 'разбираю…';
+    let res;
+    try { res = await fetch(UPLOAD_ENDPOINTS[ext], { method: 'POST', body: formData }); }
+    catch (netErr) { throw { message: 'Нет связи с сервером. Файл не загружен.' }; }
     const payload = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(payload.detail || ('HTTP ' + res.status));
+    if (!res.ok) {
+      const d = payload.detail;
+      throw { message: typeof d === 'string' ? d : (d && d.message) || ('Ошибка сервера ' + res.status), problems: (d && d.problems) || [] };
+    }
     row.classList.add('upload-row-success');
     statusEl().textContent = 'загружено ✓';
+    let html = `<div>${uploadEscapeHtml(payload.message || 'Готово')}</div>`;
+    (payload.warnings || []).forEach(w => { html += `<div style="color:#b45309;">⚠ ${uploadEscapeHtml(w)}</div>`; });
+    if ((payload.possible_duplicates || []).length) {
+      html += '<div style="color:#b45309;">Похожие имена: ' + payload.possible_duplicates.map(d => uploadEscapeHtml(d.name) + ' ≈ ' + uploadEscapeHtml(d.similar_to)).join('; ') +
+        '. <a href="staff.html" style="color:#FF5D16;font-weight:600;">Проверить на странице «Сотрудники»</a></div>';
+    }
+    details.innerHTML = html;
+    if (typeof window.onDataUploaded === 'function') { window.onDataUploaded(); }
+    else { details.innerHTML += '<div style="opacity:.7;">Обновите страницу, чтобы увидеть новые данные. <a href="#" onclick="location.reload();return false;" style="color:#FF5D16;">Обновить</a></div>'; }
   } catch (e) {
-    row.classList.add('upload-row-error');
-    statusEl().textContent = 'ошибка: ' + (e.message || 'не удалось загрузить');
+    fail('ошибка', e.message || 'Не удалось загрузить', e.problems);
     console.error('[upload-widget] upload failed:', e);
   }
 }

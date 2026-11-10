@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - Контроль по дням</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/extra.css">
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(255, 93, 22, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 93, 22, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #FF5D16, #D4470A); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(212, 71, 10, 0.4);">NEW</span>
+        Контроль качества — по дням и неделям
+      </div>
+    </div>
+
+    <div class="section active" style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title">Контроль качества по дням</div>
+          <div class="page-sub" style="margin-bottom:0" id="pageSub">Загрузка данных…</div>
+        </div>
+        <button class="btn-soft" onclick="openUploadModal()">Загрузить отчёт</button>
+      </div>
+      <div style="margin-bottom:20px"></div>
+      <div id="msgBox"></div>
+      <div class="filters" id="filters" style="display:none;">
+        <label>Оператор</label><select id="scopeSelect" class="search-box"></select>
+        <label>Период с</label><input type="date" id="fromDate" class="search-box">
+        <label>по</label><input type="date" id="toDate" class="search-box">
+        <button class="btn-soft" id="prevRange" title="Сдвинуть период назад">◀</button>
+        <button class="btn-soft" id="nextRange" title="Сдвинуть период вперёд">▶</button>
+        <span style="flex-basis:100%;height:0;"></span>
+        <label>Быстро</label>
+        <button class="btn-soft" data-preset="week">Неделя</button>
+        <button class="btn-soft" data-preset="month">Месяц</button>
+        <button class="btn-soft" data-preset="quarter">3 месяца</button>
+        <button class="btn-soft" data-preset="all">Всё время</button>
+      </div>
+      <div id="dailyContent" style="display:none;">
+        <div class="kpi-grid" id="statCards"></div>
+        <div class="muted" style="margin-bottom:16px;">Норма по регламенту — не менее 1 оценённого звонка в день (4 в неделю) на оператора. Один день — это 1–2 звонка, поэтому дневной балл «шумный»: для выводов о росте ориентируйтесь на неделю.</div>
+        <div class="card" style="margin-bottom:22px;">
+          <div class="card-title" id="chartTitle">Итоговый балл (TQS) по дням</div>
+          <div style="position:relative;height:280px;width:100%;"><canvas id="dailyChart"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:22px;">
+          <div class="card-title">Критерии за период</div>
+          <div class="muted" style="margin-bottom:8px;">Средний балл по каждому из 9 критериев и изменение к предыдущему периоду такой же длины. Слабые места — внизу списка.</div>
+          <div style="overflow-x:auto;"><table><thead><tr><th>Критерий</th><th>Средний балл</th><th>К пред. периоду</th></tr></thead><tbody id="critBody"></tbody></table></div>
+        </div>
+        <div class="card" style="margin-bottom:22px;">
+          <div class="card-title">По неделям</div>
+          <div style="overflow-x:auto;"><table><thead><tr>
+            <th>Неделя</th><th>Звонков</th><th>TQS</th><th>К пред. неделе</th><th>Норма (4 звонка)</th>
+          </tr></thead><tbody id="weeksBody"></tbody></table></div>
+        </div>
+        <div class="card" style="margin-bottom:22px;">
+          <div class="card-title">По дням (нажмите на день, чтобы увидеть детали)</div>
+          <div style="overflow-x:auto;"><table><thead><tr>
+            <th>Дата</th><th>Звонков</th><th>TQS</th><th>К пред. дню</th><th>AHT</th><th>С «0»</th><th>Слабые критерии</th>
+          </tr></thead><tbody id="daysBody"></tbody></table></div>
+        </div>
+        <div class="card" id="detailCard" style="display:none;">
+          <div class="card-title" id="detailTitle">Детали дня</div>
+          <div id="detailBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script src="assets/js/daily.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('daily');
+      initTheme();
+      initDailyPage();
+    });
+  </script>
+</body>
+</html>

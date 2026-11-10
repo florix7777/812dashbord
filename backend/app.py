@@ -1,121 +1,67 @@
+"""Dashboard SC backend: API + разбор загружаемых Excel/PDF."""
+import datetime as dt
 import os
-import json
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
-from pydantic import BaseModel
-from sqlalchemy import text, create_engine, MetaData, Table, Column, Integer, String, Float, DateTime, JSON, select
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+from fastapi import Body, FastAPI, File, Form, HTTPException, Query, UploadFile  # noqa: E402
+from fastapi.concurrency import run_in_threadpool  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+from sqlalchemy import select  # noqa: E402
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError  # noqa: E402
+
+import db  # noqa: E402
+import parsing as P  # noqa: E402
+import store  # noqa: E402
+from db import employee_scores  # noqa: E402
+
 REPORTS_DIR = os.getenv("REPORTS_DIR", "/app/reports")
 DATA_MODE = os.getenv("DATA_MODE", "api")
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
+SIGNATURES = {".xlsx": b"PK\x03\x04", ".pdf": b"%PDF-"}
+engine = db.engine
 
-# Upload safety limits
-MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))  # 20 MB default
-# Magic-byte signatures so a renamed .exe can't sneak in as ".xlsx"/".pdf".
-XLSX_SIGNATURE = b"PK\x03\x04"  # xlsx is a zip archive
-PDF_SIGNATURE = b"%PDF-"
+
+def _maybe_auto_import():
+    """Первый запуск на пустой базе: подгружаем отчёты из AUTO_IMPORT_DIR (в фоне, чтобы не задерживать старт)."""
+    folder = os.getenv("AUTO_IMPORT_DIR", "")
+    if not folder or not os.path.isdir(folder):
+        return
+    with engine.connect() as conn:
+        if conn.execute(select(db.upload_log.c.id).limit(1)).first():
+            return  # данные уже загружались, повторно не импортируем
+
+    def run():
+        import importer
+        importer.import_directory(engine, folder)
+
+    import threading
+    threading.Thread(target=run, daemon=True, name="auto-import").start()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables on startup (modern replacement for on_event)."""
-    init_db()
+    db.init_db()
+    if engine is not None:
+        with engine.begin() as conn:
+            store.seed(conn)
+        _maybe_auto_import()
     yield
 
 
-app = FastAPI(title="Dashboard SC Backend", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Dashboard SC Backend", version="2.0.0", lifespan=lifespan)
 
-# CORS: intentionally NOT enabled. Frontend and backend are served from the
-# same origin through nginx's /api/ proxy (see nginx.conf), so the browser
-# never needs cross-origin permission for the dashboard to work. Leaving
-# CORS open (allow_origins=["*"]) would let any other website's JavaScript
-# call this API on a visitor's behalf. If a legitimate external origin ever
-# needs access, set ALLOWED_ORIGINS (comma-separated) explicitly — never "*".
-_allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
-if _allowed_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=_allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-# Database setup
-engine = create_engine(DATABASE_URL, pool_pre_ping=True) if DATABASE_URL else None
-
-# Database models
-metadata = MetaData()
-
-employee_scores = Table(
-    "employee_scores",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("employee_name", String(255), nullable=False),
-    Column("month", String(50), nullable=False),
-    Column("period", String(50), nullable=False),
-    Column("tqs", Float, default=0.0),
-    Column("aht", String(20), default="N/A"),
-    Column("activity_count", Integer, default=0),
-    Column("svp_scores", JSON, default=dict),
-    Column("raw_scores", JSON, default=dict),
-    Column("tendencies", String, default=""),
-    Column("recommendations", String, default=""),
-    Column("created_at", DateTime, default=datetime.utcnow),
-    Column("updated_at", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow),
-)
-
-employee_info = Table(
-    "employees",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("name", String(255), unique=True, nullable=False),
-    Column("created_at", DateTime, default=datetime.utcnow),
-)
-
-# One row per (employee, report_date) — a daily snapshot of month-to-date
-# collection progress, as uploaded from the team-lead's daily Excel report.
-# `collected_amount` / `plan_amount` are cumulative for the month as of
-# report_date (matches how the source report is structured), not a daily
-# delta — deltas/trend are computed at query time by comparing consecutive
-# report_date rows for the same employee.
-collection_scores = Table(
-    "collection_scores",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("employee_name", String(255), nullable=False),
-    Column("report_date", String(10), nullable=False),  # ISO "YYYY-MM-DD"
-    Column("month_label", String(50), nullable=False),   # e.g. "Июль 2026"
-    Column("collected_amount", Float, default=0.0),
-    Column("plan_amount", Float, default=0.0),
-    Column("created_at", DateTime, default=datetime.utcnow),
-    Column("updated_at", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow),
-)
-
-# One row per (employee, month) — a monthly snapshot of CRM action-type
-# counts, as uploaded from a pivoted Excel report (one row per operator,
-# one column per action type: "Обещание платежа", "Отказ от оплаты", etc.).
-# `actions` stores the full breakdown as JSON since the exact set of action
-# types can vary between exports — no fixed column list to maintain here.
-crm_actions = Table(
-    "crm_actions",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("employee_name", String(255), nullable=False),
-    Column("month_label", String(50), nullable=False),  # e.g. "Июль 2026"
-    Column("actions", JSON, default=dict),               # {"Обещание платежа": 489, ...}
-    Column("total_actions", Integer, default=0),
-    Column("created_at", DateTime, default=datetime.utcnow),
-    Column("updated_at", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow),
-)
+# CORS выключен намеренно: фронт и API живут на одном адресе через nginx.
+_allowed = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+if _allowed:
+    app.add_middleware(CORSMiddleware, allow_origins=_allowed, allow_credentials=True,
+                       allow_methods=["*"], allow_headers=["*"])
 
 
 class HealthResponse(BaseModel):
@@ -141,279 +87,217 @@ class ForecastResponse(BaseModel):
     model: str
 
 
-def check_db() -> tuple[bool, str]:
-    """Check database connection status."""
+def _read(fn, empty):
+    """Выполняет чтение из БД; без БД возвращает пустой результат."""
     if engine is None:
-        return False, "not_configured"
+        return empty
     try:
-        with Session(engine) as session:
-            session.execute(text("SELECT 1"))
-        return True, "connected"
-    except SQLAlchemyError:
-        return False, "error"
+        with engine.connect() as conn:
+            return fn(conn)
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail=f"Database error: {exc}")
 
 
-def init_db():
-    """Initialize database tables."""
-    if engine:
-        metadata.create_all(engine, checkfirst=True)
+def _write(fn):
+    if engine is None:
+        raise HTTPException(status_code=503, detail="База данных не настроена.")
+    try:
+        with engine.begin() as conn:
+            return fn(conn)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail=f"Database error: {exc}")
 
 
+# ---------- служебное ----------
 @app.get("/api/health", response_model=HealthResponse)
 def health():
-    """Health check endpoint."""
-    ok, db_state = check_db()
-    status_code = 200 if ok or db_state == "not_configured" else 503
-    return JSONResponse(
-        {
-            "status": "healthy" if ok else "degraded",
-            "database": db_state,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service": "dashboard-sc-backend",
-            "data_mode": DATA_MODE,
-        },
-        status_code=status_code,
-    )
+    ok, state = db.check_db()
+    return JSONResponse({"status": "healthy" if ok else "degraded", "database": state,
+                         "timestamp": datetime.now(timezone.utc).isoformat(),
+                         "service": "dashboard-sc-backend", "data_mode": DATA_MODE},
+                        status_code=200 if ok or state == "not_configured" else 503)
 
 
+@app.get("/api/data-mode")
+def data_mode():
+    return {"mode": DATA_MODE, "description": "API Mode - data from PostgreSQL"}
+
+
+@app.get("/api/status")
+def status():
+    """Когда и что обновлялось последним (для подписи «данные на …» на страницах)."""
+    return _read(store.status, {"qc": {}, "collection": {}, "uploads": []})
+
+
+# ---------- данные для страниц ----------
 @app.get("/api/employees", response_model=EmployeeResponse)
 def employees():
-    """Get list of all employees."""
-    if not engine:
-        return {"items": [], "total": 0}
-    
-    try:
-        with Session(engine) as session:
-            # Get unique employee names from scores table
-            stmt = select(employee_scores.c.employee_name).distinct()
-            result = session.execute(stmt)
-            names = [row[0] for row in result if row[0]]
-            
-            return {"items": [{"name": name} for name in sorted(names)], "total": len(names)}
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    def f(conn):
+        items = [{"name": s["name"], "active": s["active"]} for s in store.staff_list(conn)["items"] if s["active"]]
+        return {"items": items, "total": len(items)}
+    return _read(f, {"items": [], "total": 0})
 
 
 @app.get("/api/history/{employee_name}", response_model=HistoryResponse)
 def history(employee_name: str, month: Optional[str] = None):
-    """Get history for specific employee."""
-    if not engine:
-        return {"employee": employee_name, "history": []}
-    
-    try:
-        with Session(engine) as session:
-            # Build query
-            stmt = select(employee_scores).where(employee_scores.c.employee_name == employee_name)
-            
-            if month:
-                stmt = stmt.where(employee_scores.c.month == month)
-            
-            # Order by month and period
-            stmt = stmt.order_by(employee_scores.c.month.desc(), employee_scores.c.period.desc())
-            
-            result = session.execute(stmt)
-            rows = result.fetchall()
-            
-            history_data = []
-            for row in rows:
-                history_data.append({
-                    "month": row.month,
-                    "period": row.period,
-                    "tqs": row.tqs,
-                    "aht": row.aht,
-                    "activity_count": row.activity_count,
-                    "svp": row.svp_scores or {},
-                    "tendencies": row.tendencies or "",
-                    "recommendations": row.recommendations or "",
-                })
-            
-            return {"employee": employee_name, "history": history_data}
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    def f(conn):
+        q = select(employee_scores).where(employee_scores.c.employee_name == employee_name)
+        if month:
+            q = q.where(employee_scores.c.month == month)
+        q = q.order_by(employee_scores.c.month.desc(), employee_scores.c.period.desc())
+        return {"employee": employee_name, "history": [{
+            "month": r.month, "period": r.period, "tqs": r.tqs, "aht": r.aht,
+            "activity_count": r.activity_count, "svp": r.svp_scores or {},
+            "tendencies": r.tendencies or "", "recommendations": r.recommendations or ""}
+            for r in conn.execute(q)]}
+    return _read(f, {"employee": employee_name, "history": []})
 
 
 @app.get("/api/metrics")
-def get_metrics():
-    """Get all dashboard metrics in DASHBOARD_DATA format."""
-    if not engine:
-        return {}
-    
-    try:
-        with Session(engine) as session:
-            # Get all data grouped by employee
-            stmt = select(employee_scores).order_by(
-                employee_scores.c.employee_name,
-                employee_scores.c.month.desc(),
-                employee_scores.c.period.desc()
-            )
-            
-            result = session.execute(stmt)
-            rows = result.fetchall()
-            
-            # Build DASHBOARD_DATA structure
-            dashboard_data = {}
-            
-            for row in rows:
-                employee = row.employee_name
-                month = row.month
-                period = row.period
-                
-                if employee not in dashboard_data:
-                    dashboard_data[employee] = {"months": {}}
-                
-                if month not in dashboard_data[employee]["months"]:
-                    dashboard_data[employee]["months"][month] = {"periods": []}
-                
-                period_data = {
-                    "period": period,
-                    "tqs": row.tqs or 0.0,
-                    "aht": row.aht or "N/A",
-                    "svp": row.svp_scores or {},
-                    "raw_scores": row.raw_scores or {},
-                    "tendencies": row.tendencies or "",
-                    "rec": row.recommendations or "",
-                    "activity_count": row.activity_count or 0,
-                }
-                
-                dashboard_data[employee]["months"][month]["periods"].append(period_data)
-            
-            # Sort periods within each month
-            for employee_data in dashboard_data.values():
-                for month_data in employee_data["months"].values():
-                    month_data["periods"].sort(key=lambda x: x["period"])
-            
-            return dashboard_data
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+def metrics():
+    return _read(store.metrics, {})
 
 
 @app.get("/api/collection")
-def get_collection():
-    """Get all collection (взыскание) daily snapshots, grouped by employee.
-
-    Shape: { "Имя": { "daily": [ {date, month_label, collected, plan}, ... ] } }
-    `daily` is sorted ascending by date so the frontend can diff consecutive
-    entries for trend arrows without re-sorting.
-    """
-    if not engine:
-        return {}
-
-    try:
-        with Session(engine) as session:
-            stmt = select(collection_scores).order_by(
-                collection_scores.c.employee_name,
-                collection_scores.c.report_date.asc(),
-            )
-            rows = session.execute(stmt).fetchall()
-
-            data: Dict[str, Any] = {}
-            for row in rows:
-                emp = data.setdefault(row.employee_name, {"daily": []})
-                emp["daily"].append({
-                    "date": row.report_date,
-                    "month_label": row.month_label,
-                    "collected": row.collected_amount or 0.0,
-                    "plan": row.plan_amount or 0.0,
-                })
-            return data
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+def collection():
+    return _read(store.collection, {})
 
 
 @app.get("/api/crm-actions")
-def get_crm_actions():
-    """Get all CRM action-type breakdowns, grouped by employee then month.
+def crm_actions():
+    return _read(store.crm, {})
 
-    Shape: { "Имя": { "Месяц 2026": { actions: {тип: count, ...}, total: N } } }
-    """
-    if not engine:
-        return {}
 
-    try:
-        with Session(engine) as session:
-            stmt = select(crm_actions).order_by(
-                crm_actions.c.employee_name,
-                crm_actions.c.month_label,
-            )
-            rows = session.execute(stmt).fetchall()
+@app.get("/api/qc/daily")
+def qc_daily(employee: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None):
+    """По дням и неделям: качество оператора (или всего отдела) с ростом/падением."""
+    return _read(lambda c: store.qc_daily(c, employee, date_from, date_to),
+                 {"employee": employee, "days": [], "weeks": []})
 
-            data: Dict[str, Any] = {}
-            for row in rows:
-                emp = data.setdefault(row.employee_name, {})
-                emp[row.month_label] = {
-                    "actions": row.actions or {},
-                    "total": row.total_actions or 0,
-                }
-            return data
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/qc/calls")
+def qc_calls(employee: str, date: str):
+    return _read(lambda c: {"employee": employee, "date": date, "calls": store.qc_calls_for_day(c, employee, date)},
+                 {"employee": employee, "date": date, "calls": []})
+
+
+@app.get("/api/qc/day")
+def qc_day(date: str):
+    """Сводка по всем операторам за один день (для режима «весь отдел»)."""
+    return _read(lambda c: {"date": date, "operators": store.qc_day_summary(c, date)}, {"date": date, "operators": []})
 
 
 @app.get("/api/trends/forecast", response_model=ForecastResponse)
 def forecast():
-    """Get forecast data (placeholder for future ML implementation)."""
     return {"period": "current", "forecast": [], "model": "placeholder"}
 
 
-async def _save_upload_safely(file: UploadFile, expected_ext: str, signature: bytes) -> str:
-    """Shared, hardened upload handler for both xlsx and pdf.
+# ---------- сотрудники ----------
+class NameBody(BaseModel):
+    name: str
 
-    Validates extension AND real file signature (magic bytes) — a renamed
-    malicious file with a fake ".xlsx"/".pdf" extension gets rejected — and
-    enforces MAX_UPLOAD_BYTES so nobody can fill the disk with one request.
-    """
-    if not file.filename or not file.filename.lower().endswith(expected_ext):
-        raise HTTPException(status_code=400, detail=f"Only {expected_ext.upper()} files are allowed")
 
-    if not REPORTS_DIR or not os.path.exists(REPORTS_DIR):
-        raise HTTPException(status_code=500, detail="Reports directory not configured")
+class ActiveBody(BaseModel):
+    name: str
+    active: bool
 
-    # Reject path traversal / weird filenames (e.g. "../../etc/passwd.xlsx").
-    safe_name = os.path.basename(file.filename)
-    if not safe_name or safe_name != file.filename.strip():
-        raise HTTPException(status_code=400, detail="Invalid filename")
 
+class PairBody(BaseModel):
+    a: str
+    b: str
+
+
+class MergeBody(BaseModel):
+    source: str
+    target: str
+
+
+@app.get("/api/staff")
+def staff_list():
+    return _read(store.staff_list, {"items": [], "total": 0, "possible_duplicates": []})
+
+
+@app.post("/api/staff")
+def staff_add(body: NameBody):
+    return {"name": _write(lambda c: store.add_staff(c, body.name))}
+
+
+@app.post("/api/staff/active")
+def staff_active(body: ActiveBody):
+    _write(lambda c: store.set_active(c, body.name, body.active))
+    return {"ok": True}
+
+
+@app.post("/api/staff/not-same")
+def staff_not_same(body: PairBody):
+    _write(lambda c: store.dismiss_pair(c, body.a, body.b))
+    return {"ok": True}
+
+
+@app.post("/api/staff/merge")
+def staff_merge(body: MergeBody):
+    _write(lambda c: store.merge_staff(c, body.source, body.target))
+    return {"ok": True, "merged_into": body.target}
+
+
+# ---------- загрузка ----------
+def _parse_report_date(value: Optional[str]) -> Optional[dt.date]:
+    if not value:
+        return None
+    d = P.to_date(value)
+    if d is None:
+        raise HTTPException(status_code=422, detail="Дата отчёта должна быть в формате ГГГГ-ММ-ДД или ДД.ММ.ГГГГ.")
+    return d
+
+
+async def _handle_upload(file: UploadFile, report_date: Optional[str], amount_type: str = "auto"):
+    if engine is None:
+        raise HTTPException(status_code=503, detail="База данных не настроена.")
+    filename = os.path.basename(file.filename or "")
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in SIGNATURES:
+        raise HTTPException(status_code=415, detail="Поддерживаются только файлы .xlsx и .pdf.")
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail=f"File exceeds {MAX_UPLOAD_BYTES // (1024*1024)}MB limit")
-    if not content.startswith(signature):
-        raise HTTPException(status_code=400, detail=f"File content does not look like a valid {expected_ext.upper()}")
-
-    file_path = os.path.join(REPORTS_DIR, safe_name)
+        raise HTTPException(status_code=413, detail=f"Файл больше {MAX_UPLOAD_BYTES // (1024 * 1024)} МБ.")
+    if not content.startswith(SIGNATURES[ext]):
+        raise HTTPException(status_code=415, detail=f"Содержимое файла не похоже на {ext}.")
+    rdate = _parse_report_date(report_date)
+    if amount_type not in ("auto", "cumulative", "daily"):
+        amount_type = "auto"
     try:
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
-        return file_path
-    except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        summary = await run_in_threadpool(store.process_upload, engine, content, filename, rdate, amount_type)
+    except P.ParseError as exc:
+        raise HTTPException(status_code=422, detail={"message": exc.message, "problems": exc.problems})
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail=f"Конфликт данных при записи: {exc.orig}")
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка базы данных: {exc}")
+    try:  # архив исходника, не критично
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        with open(os.path.join(REPORTS_DIR, f"{stamp}_{filename}"), "wb") as fh:
+            fh.write(content)
+    except OSError:
+        pass
+    return summary
+
+
+@app.post("/api/upload")
+async def upload(file: UploadFile = File(...), report_date: Optional[str] = Form(None),
+        amount_type: str = Form("auto")):
+    return await _handle_upload(file, report_date, amount_type)
 
 
 @app.post("/api/upload/xlsx")
-async def upload_xlsx(file: UploadFile = File(...)):
-    """Upload an XLSX report. The `updater` service watches REPORTS_DIR and
-    ingests new files automatically — this endpoint only needs to save the
-    file safely, no separate "trigger processing" step is needed."""
-    path = await _save_upload_safely(file, ".xlsx", XLSX_SIGNATURE)
-    return {"status": "success", "message": f"File {os.path.basename(path)} saved, will be processed automatically", "path": path}
+async def upload_xlsx(file: UploadFile = File(...), report_date: Optional[str] = Form(None),
+        amount_type: str = Form("auto")):
+    return await _handle_upload(file, report_date, amount_type)
 
 
 @app.post("/api/upload/pdf")
-async def upload_pdf(file: UploadFile = File(...)):
-    """Upload a PDF report. See upload_xlsx docstring — processing is automatic."""
-    path = await _save_upload_safely(file, ".pdf", PDF_SIGNATURE)
-    return {"status": "success", "message": f"File {os.path.basename(path)} saved, will be processed automatically", "path": path}
-
-
-@app.get("/api/data-mode")
-def get_data_mode():
-    """Get current data mode."""
-    return {"mode": DATA_MODE, "description": "API Mode - data from PostgreSQL"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    # 0.0.0.0 is intentional and safe here: this process only runs inside the
-    # `backend` Docker container, which has NO port mapping to the host/internet
-    # (see docker-compose.yml) — it's reachable only from other containers on
-    # qc_network (nginx, updater). Binding to 127.0.0.1 would break that.
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosec B104
+async def upload_pdf(file: UploadFile = File(...), report_date: Optional[str] = Form(None),
+        amount_type: str = Form("auto")):
+    return await _handle_upload(file, report_date, amount_type)

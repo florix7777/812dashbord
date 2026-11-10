@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - Сотрудники</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/extra.css">
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(255, 93, 22, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 93, 22, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #FF5D16, #D4470A); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(212, 71, 10, 0.4);">NEW</span>
+        Сотрудники — список, дубли, добавление
+      </div>
+    </div>
+
+    <div class="section active" style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title">Сотрудники</div>
+          <div class="page-sub" style="margin-bottom:0" id="pageSub">Загрузка списка…</div>
+        </div>
+        <button class="btn-soft" onclick="openUploadModal()">Загрузить отчёт</button>
+      </div>
+      <div style="margin-bottom:20px"></div>
+      <div id="msgBox"></div>
+      <div class="card" id="dupCard" style="display:none;margin-bottom:22px;">
+        <div class="card-title">Похожие имена: это один и тот же человек?</div>
+        <div class="muted" style="margin-bottom:10px;">Если один человек записан в двух отчётах по-разному, объедините записи, иначе качество и взыскание не свяжутся. Все данные перейдут к выбранному имени.</div>
+        <div id="dupList"></div>
+      </div>
+      <div class="card" style="margin-bottom:22px;">
+        <div class="card-title">Добавить сотрудника вручную</div>
+        <div class="filters" style="margin:0;border:none;padding:0;background:none;">
+          <input id="newName" class="search-box" style="min-width:260px;" placeholder="Фамилия Имя">
+          <button class="btn-soft" id="addBtn">Добавить</button>
+        </div>
+        <div class="muted" style="margin-top:8px;">Новые сотрудники из загруженных файлов добавляются сами, вручную нужно только если человека ещё нет ни в одном отчёте.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Список сотрудников</div>
+        <div class="muted" style="margin-bottom:8px;">Неактивные (уволенные) не показываются в рейтингах и графиках, их история сохраняется.</div>
+        <div style="overflow-x:auto;"><table><thead><tr>
+          <th>Сотрудник</th><th>Последняя оценка звонка</th><th>Последний отчёт по взысканию</th><th>Статус</th>
+        </tr></thead><tbody id="staffBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script src="assets/js/staff.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('staff');
+      initTheme();
+      initStaffPage();
+    });
+  </script>
+</body>
+</html>

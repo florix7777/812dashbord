@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QC Dashboard - Регламент QC v2.0</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Light mode: preamble info-boxes */
+    body.light-mode .qc-info-box {
+      background: #F1F2EE;
+      border-color: inherit;
+    }
+    body.light-mode .qc-info-box strong {
+      color: #27272a;
+    }
+    body.light-mode .qc-info-box {
+      color: #3f3f46;
+    }
+    /* Light mode: accordion body text */
+    body.light-mode .acc-body.qc-body {
+      color: #27272a;
+    }
+    body.light-mode .acc-body.qc-body strong { color: #18181b; }
+    body.light-mode .acc-body.qc-body em { color: #D4470A; }
+    body.light-mode .acc-body.qc-body li { color: #27272a; }
+    /* Light mode: sampling categories block */
+    body.light-mode .qc-strata-box {
+      background: #F1F2EE;
+      border: 1px solid rgba(255, 93, 22, 0.12);
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Тема">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="transition-all duration-300"></div>
+
+  <div id="main" class="transition-all duration-300">
+    <div style="background: rgba(168, 85, 247, 0.15); backdrop-filter: blur(8px); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(168, 85, 247, 0.3);">
+      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #f1f5f9;">
+        <span style="background: linear-gradient(135deg, #a855f7, #9333ea); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(168, 85, 247, 0.4);">DOCv2.0</span>
+        Нормативная база QC
+      </div>
+    </div>
+    
+    <div class="section active" style="padding:28px; max-width: 900px; margin: 0 auto;">
+      <div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>
+        </svg> РЕГЛАМЕНТ РАБОТЫ ОТДЕЛА QUALITY CONTROL (v2.0)</div>
+      <div class="page-sub" style="margin-bottom: 30px;">Единые стандарты деятельности сотрудников Soft Collection</div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="color: #a855f7; font-weight: 600; margin-bottom: 12px;">Преамбула</h3>
+        <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-bottom: 12px;">
+          Настоящий документ устанавливает единые стандарты деятельности сотрудников подразделения Soft Collection организации «Variant Retail Finance». 
+          Регламент определяет тактические и операционные инструменты для оценки качества телефонных переговоров, включая использование СВП.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+          <div class="qc-info-box" style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border-left: 3px solid #3b82f6;">
+            <strong>Правомерность:</strong> обеспечение законности действий.
+          </div>
+          <div class="qc-info-box" style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border-left: 3px solid #FF5D16;">
+            <strong>Стандартизация:</strong> унификация алгоритмов на основе СВП.
+          </div>
+          <div class="qc-info-box" style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border-left: 3px solid #ef4444;">
+            <strong>Дисциплина и этика:</strong> поддержание репутации.
+          </div>
+          <div class="qc-info-box" style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border-left: 3px solid #10b981;">
+            <strong>Эффективность:</strong> повышение возврата задолженности.
+          </div>
+        </div>
+      </div>
+
+      <div id="regDocsContainer" style="display:flex; flex-direction: column; gap: 12px;">
+        <!-- ACC 1 -->
+        <div class="acc-item" id="reg-acc-1">
+          <div class="acc-header" onclick="document.getElementById('reg-acc-1').classList.toggle('open')">
+            <span class="acc-num" style="color:#60a5fa;">1</span>
+            <span class="acc-q">Общие положения и Принципы работы</span>
+            <div class="acc-meta"><span class="acc-chevron">▼</span></div>
+          </div>
+          <div class="acc-body qc-body" style="font-size:13px;line-height:1.8;color:#cbd5e1;">
+            <p><strong>Основные задачи отдела:</strong></p>
+            <ul style="padding-left:20px; list-style:circle; margin-bottom: 12px;">
+              <li>Унифицированный охват мониторинга: непрерывный контроль качества.</li>
+              <li>Риск-менеджмент: выявление и купирование репутационных рисков.</li>
+              <li>Методологическое сопровождение: определение зон роста.</li>
+            </ul>
+            <p><strong>Принципы:</strong></p>
+            <ul style="padding-left:20px; list-style:circle;">
+              <li><strong>Индивидуальный вектор:</strong> фокус на динамике специалиста. Бенчмаркинг не допускается.</li>
+              <li><strong>Приоритет содержания:</strong> факт преодоления сопротивления клиента. Следование СВП является базовым требованием.</li>
+              <li><strong>Развивающая направленность:</strong> контроль как инструмент развития, а не карательный механизм.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ACC 2 -->
+        <div class="acc-item" id="reg-acc-2">
+          <div class="acc-header" onclick="document.getElementById('reg-acc-2').classList.toggle('open')">
+            <span class="acc-num" style="color:#f43f5e;">2</span>
+            <span class="acc-q">Концепция и Методология Оценивания</span>
+            <div class="acc-meta"><span class="acc-chevron">▼</span></div>
+          </div>
+          <div class="acc-body qc-body" style="font-size:13px;line-height:1.8;color:#cbd5e1;">
+            <p>С 2026 года концепция "Волн" заменяется системой стратифицированной рандомной выборки.</p>
+            <div class="qc-strata-box" style="background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin: 10px 0;">
+              <strong>Категории (страты) по времени:</strong>
+              <ul style="margin:4px 0 4px 20px;">
+                <li>Категория A: 0.4 - 1.0 мин</li>
+                <li>Категория B: 1.0 - 2.0 мин</li>
+                <li>Категория C: 2.0 - 3.0 мин</li>
+                <li>Категория D: свыше 3.0 мин</li>
+              </ul>
+            </div>
+            <p><strong>Критерий релевантности:</strong> главное условие оценки — <em>наличие возражения</em> со стороны клиента.</p>
+            <p><strong>Объем контроля:</strong> мин. 1 валидный звонок в день (мин. 4 за неделю). 1 дата = 1 звонок.</p>
+          </div>
+        </div>
+
+        <!-- ACC 3 -->
+        <div class="acc-item" id="reg-acc-3">
+          <div class="acc-header" onclick="document.getElementById('reg-acc-3').classList.toggle('open')">
+            <span class="acc-num" style="color:#10b981;">3</span>
+            <span class="acc-q">Ответственность сторон</span>
+            <div class="acc-meta"><span class="acc-chevron">▼</span></div>
+          </div>
+          <div class="acc-body qc-body" style="font-size:13px;line-height:1.8;color:#cbd5e1;">
+            <p><strong>Специалист Quality Control (Контролер):</strong></p>
+            <ul style="padding-left:20px; list-style:circle; margin-bottom: 12px;">
+              <li>Обязан соблюдать методику отбора. Преднамеренная оценка без возражений — нарушение.</li>
+              <li>Соблюдать беспристрастность; фаворитизм — грубое нарушение.</li>
+              <li>Обязан предоставлять развернутую обратную связь.</li>
+            </ul>
+            <p><strong>Сотрудник Soft Collection (Контакт-менеджер):</strong></p>
+            <ul style="padding-left:20px; list-style:circle;">
+              <li>Обязан принимать результаты TQS как основу для совершенствования.</li>
+              <li>Обязательное участие в ежемесячных калибровочных сессиях.</li>
+              <li>Ответственность за системное исправление ошибок.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/sidebar.js"></script>
+  <script src="assets/js/upload-widget.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebar('qc_regulations');
+      initTheme();
+    });
+  </script>
+</body>
+</html>

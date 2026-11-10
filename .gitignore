@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment variables
+.env
+
+# One-shot refactor scripts
+refactor_*.py
+fix_*.py
+update_*.py
+replace_*.py
+write_*.py
+clean_*.py
+
+# Reports data (sensitive — real employee data, never commit)
+reports/*.xlsx
+reports/*.pdf
+
+# Backup files
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+.htpasswd
+
+# Архив файлов, загруженных через сайт (настоящие данные)
+reports/*
+!reports/.gitkeep

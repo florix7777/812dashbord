@@ -654,8 +654,12 @@ function toggleTheme() {
           aCount += callCount;
         }
         if (d.svp) {
+          // «Приоритет 0»: оператор, у которого в выбранном периоде был хотя бы один звонок с оценкой 0 по любому критерию
+          // (раньше считалось только когда СРЕДНЯЯ по критерию равна 0, поэтому почти всегда показывало 0)
           let hasZeroSvp = Object.values(d.svp).some(v => v === 0);
-          if (hasZeroSvp && name) riskEmps.add(name);
+          const _riskPeriods = currentPeriod === "Все" ? (m.periods || []) : (m.periods || []).filter(p => p?.period === currentPeriod);
+          const hasZeroCall = _riskPeriods.some(p => p?.raw_scores && Object.values(p.raw_scores).some(arr => Array.isArray(arr) && arr.some(v => v === 0)));
+          if ((hasZeroSvp || hasZeroCall) && name) riskEmps.add(name);
         }
       });
       // Командный TQS рассчитывается как взвешенное среднее по звонкам
