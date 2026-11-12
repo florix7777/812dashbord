@@ -1,5 +1,5 @@
 # Dashboard SC: сайт (nginx) + API + база. Updater больше не нужен:
-# файлы разбираются сразу при загрузке на сайте.
+ файлы разбираются сразу при загрузке на сайте.
 services:
   postgres:
     image: postgres:16-alpine
